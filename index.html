@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Количество банкетов по дням</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        #container {
+            width: 100%;
+            height: 100vh;
+            background: #fff;
+            padding: 10px;
+        }
+
+        #main {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Адаптивные стили для разных размеров экрана */
+        @media (max-width: 768px) {
+            #container {
+                padding: 5px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 0;
+            }
+            
+            #container {
+                padding: 2px;
+            }
+        }
+
+        /* Портретная ориентация */
+        @media (orientation: portrait) {
+            #container {
+                padding: 8px;
+            }
+        }
+
+        /* Ландшафтная ориентация */
+        @media (orientation: landscape) {
+            #container {
+                padding: 5px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container">
+        <div id="main"></div>
+    </div>
+
+    <script type="text/javascript">
+        // Инициализация переменных
+        var myChart = null;
+        var option = null;
+
+        // Функция для инициализации графика
+        function initChart() {
+            var chartDom = document.getElementById('main');
+            myChart = echarts.init(chartDom);
+            
+            const labelOption = {
+                show: true,
+                position: 'insideBottom',
+                distance: 15,
+                align: 'left',
+                verticalAlign: 'middle',
+                rotate: 90,
+                formatter: '{c}  {name|{a}}',
+                fontSize: getFontSize(),
+                color: '#000000',
+                rich: {
+                    name: {
+                        color: '#000000'
+                    }
+                }
+            };
+
+            option = {
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'shadow'
+                    },
+                    confine: true, // Ограничивает подсказку областью графика
+                    textStyle: {
+                        fontSize: getFontSize() * 0.9
+                    }
+                },
+                legend: {
+                    data: ['Гри Холл', 'Отдел Тайн', 'Таверна', 'Трактир'],
+                    top: getLegendPosition(),
+                    textStyle: {
+                        fontSize: getFontSize() * 0.9
+                    },
+                    type: 'scroll' // Добавляем прокрутку для легенды на маленьких экранах
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '12%',
+                    top: getGridTop(),
+                    containLabel: true
+                },
+                xAxis: [
+                    {
+                        type: 'category',
+                        axisTick: { show: false },
+                        data: ['15.12', '16.12', '17.12', '18.12', '19.12', '20.12', '21.12'],
+                        axisLabel: {
+                            fontSize: getFontSize() * 0.9,
+                            interval: 0, // Всегда показываем все метки
+                            rotate: getXAxisRotation() // Поворачиваем метки на маленьких экранах
+                        }
+                    }
+                ],
+                yAxis: [
+                    {
+                        type: 'value',
+                        axisLabel: {
+                            fontSize: getFontSize() * 0.9
+                        }
+                    }
+                ],
+                series: [
+                    {
+                        name: 'Гри Холл',
+                        type: 'bar',
+                        barGap: 0,
+                        barWidth: getBarWidth(),
+                        label: labelOption,
+                        emphasis: {
+                            focus: 'series'
+                        },
+                        data: [7, 3, 6, 7, 9, 12, 5]
+                    },
+                    {
+                        name: 'Отдел Тайн',
+                        type: 'bar',
+                        barWidth: getBarWidth(),
+                        label: labelOption,
+                        emphasis: {
+                            focus: 'series'
+                        },
+                        data: [2, 3, 0, 1, 3, 6, 3]
+                    },
+                    {
+                        name: 'Таверна',
+                        type: 'bar',
+                        barWidth: getBarWidth(),
+                        label: labelOption,
+                        emphasis: {
+                            focus: 'series'
+                        },
+                        data: [1, 1, 5, 6, 3, 2, 3]
+                    },
+                    {
+                        name: 'Трактир',
+                        type: 'bar',
+                        barWidth: getBarWidth(),
+                        label: labelOption,
+                        emphasis: {
+                            focus: 'series'
+                        },
+                        data: [2, 4, 1, 1, 5, 1, 2]
+                    }
+                ],
+                animation: true,
+                animationDuration: 500,
+                animationEasing: 'cubicOut'
+            };
+
+            if (option && myChart) {
+                myChart.setOption(option);
+            }
+        }
+
+        // Функция для определения размера шрифта в зависимости от ширины экрана
+        function getFontSize() {
+            var width = window.innerWidth;
+            if (width <= 320) return 10;
+            if (width <= 480) return 11;
+            if (width <= 768) return 12;
+            if (width <= 1024) return 14;
+            return 16;
+        }
+
+        // Функция для определения ширины столбцов
+        function getBarWidth() {
+            var width = window.innerWidth;
+            if (width <= 320) return '15%';
+            if (width <= 480) return '18%';
+            if (width <= 768) return '20%';
+            if (width <= 1024) return '22%';
+            return '25%';
+        }
+
+        // Функция для определения позиции легенды
+        function getLegendPosition() {
+            var width = window.innerWidth;
+            var height = window.innerHeight;
+            
+            // На очень маленьких экранах в портретной ориентации размещаем легенду сверху
+            if (width <= 480 && height > width) {
+                return 'top';
+            }
+            return 10;
+        }
+
+        // Функция для определения отступа сверху для grid
+        function getGridTop() {
+            var width = window.innerWidth;
+            var height = window.innerHeight;
+            
+            if (width <= 480 && height > width) {
+                return '20%'; // Больше места для легенды сверху
+            }
+            return '15%';
+        }
+
+        // Функция для определения угла поворота меток оси X
+        function getXAxisRotation() {
+            var width = window.innerWidth;
+            if (width <= 480) return 45; // Поворачиваем на 45 градусов на маленьких экранах
+            if (width <= 768) return 30;
+            return 0;
+        }
+
+        // Функция для обновления графика при изменении размера
+        function resizeChart() {
+            if (myChart) {
+                myChart.resize();
+                
+                // Обновляем опции, зависящие от размера
+                const currentOption = myChart.getOption();
+                currentOption.legend[0].top = getLegendPosition();
+                currentOption.grid[0].top = getGridTop();
+                currentOption.xAxis[0].axisLabel.rotate = getXAxisRotation();
+                currentOption.xAxis[0].axisLabel.fontSize = getFontSize() * 0.9;
+                currentOption.yAxis[0].axisLabel.fontSize = getFontSize() * 0.9;
+                currentOption.tooltip[0].textStyle.fontSize = getFontSize() * 0.9;
+                
+                // Обновляем размер шрифта для подписей
+                const fontSize = getFontSize();
+                currentOption.series.forEach(function(series) {
+                    series.label.fontSize = fontSize;
+                    series.barWidth = getBarWidth();
+                });
+                
+                myChart.setOption(currentOption);
+            }
+        }
+
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            initChart();
+            
+            // Обработчик изменения размера окна с debounce
+            let resizeTimer;
+            window.addEventListener('resize', function() {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(resizeChart, 250);
+            });
+            
+            // Обработчик изменения ориентации
+            window.addEventListener('orientationchange', function() {
+                setTimeout(resizeChart, 500);
+            });
+        });
+
+        // Предотвращаем масштабирование на мобильных устройствах при двойном тапе
+        document.addEventListener('touchstart', function(event) {
+            if (event.touches.length > 1) {
+                event.preventDefault();
+            }
+        }, { passive: false });
+
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(event) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+    </script>
+</body>
+
+</html>
