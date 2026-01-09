@@ -1,4 +1,4 @@
-console.log('Визардия Analytics Portal v2.0 загружен');
+console.log('Аналитика Визардии загружена!');
 console.log('Время загрузки:', new Date().toLocaleString());
 
 // Глобальные переменные
