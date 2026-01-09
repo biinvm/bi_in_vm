@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Аналитика банкетов</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: white;
+            color: #333;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            min-height: 70px;
+        }
+
+        .date-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e0e0e0;
+        }
+
+        .date-input {
+            padding: 10px 15px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            min-width: 140px;
+            transition: border-color 0.2s;
+        }
+
+        .date-input:focus {
+            outline: none;
+            border-color: #5470c6;
+        }
+
+        .apply-btn {
+            background: #6a11cb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            box-shadow: 0 2px 4px rgba(106, 17, 203, 0.2);
+        }
+
+        .apply-btn:hover {
+            background: #5a0db3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(106, 17, 203, 0.3);
+        }
+
+        .apply-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(106, 17, 203, 0.2);
+        }
+
+        .chart-container {
+            flex: 1;
+            min-height: 0;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        #main {
+            width: 100%;
+            height: 100%;
+            min-height: 300px;
+        }
+
+        .date-separator {
+            color: #666;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        /* Адаптивность для планшетов и телефонов */
+        @media (max-width: 768px) {
+            .top-bar {
+                flex-direction: column;
+                gap: 15px;
+                padding: 15px 10px;
+                min-height: auto;
+                justify-content: flex-start;
+            }
+            
+            .date-controls {
+                width: 100%;
+                flex-direction: column;
+                gap: 10px;
+                padding: 15px;
+            }
+            
+            .date-input {
+                width: 100%;
+                min-width: auto;
+                text-align: center;
+            }
+            
+            .apply-btn {
+                width: 100%;
+            }
+            
+            .date-separator {
+                display: none;
+            }
+            
+            .chart-container {
+                padding: 15px 10px;
+                padding-top: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .top-bar {
+                padding: 12px 8px;
+                gap: 12px;
+            }
+            
+            .date-controls {
+                padding: 12px;
+            }
+            
+            .date-input {
+                padding: 12px;
+                font-size: 13px;
+            }
+            
+            .apply-btn {
+                padding: 12px;
+                font-size: 13px;
+            }
+            
+            .chart-container {
+                padding: 12px 8px;
+                padding-top: 8px;
+            }
+        }
+
+        /* Ландшафтная ориентация */
+        @media (orientation: landscape) and (max-height: 600px) {
+            .top-bar {
+                padding: 10px;
+                min-height: 60px;
+            }
+            
+            .chart-container {
+                padding: 15px;
+                padding-top: 10px;
+            }
+            
+            .date-controls {
+                padding: 8px 15px;
+            }
+            
+            .date-input {
+                padding: 8px 12px;
+                font-size: 13px;
+                min-width: 120px;
+            }
+            
+            .apply-btn {
+                padding: 8px 15px;
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Верхняя панель с выбором периода -->
+    <div class="top-bar">
+        <div class="date-controls">
+            <input type="date" id="start-date" class="date-input">
+            <span class="date-separator">—</span>
+            <input type="date" id="end-date" class="date-input">
+            <button class="apply-btn" onclick="updateChart()">Применить</button>
+        </div>
+    </div>
+
+    <!-- Контейнер для графика -->
+    <div class="chart-container">
+        <div id="main"></div>
+    </div>
+
+    <script>
+        // Данные банкетов
+        const banquetData = {
+          "2025-08-28": {"Торжество в ресторане Гри Холл (банкет)": {"количество": 1, "сумма": 6500.0}},
+          "2025-08-29": {"Банкетный зал S \"Отдел тайн\"": {"количество": 1, "сумма": 57280.0}},
+          "2025-08-30": {"Банкетный зал S \"Отдел тайн\"": {"количество": 2, "сумма": 68650.0}},
+          "2025-09-06": {
+            "Торжество в ресторане Гри Холл (банкет)": {"количество": 2, "сумма": 33390.0},
+            "Банкетный зал L \"Трактир\"": {"количество": 1, "сумма": 2380.0}
+          },
+          "2025-09-07": {
+            "Банкетный зал S \"Отдел тайн\"": {"количество": 1, "сумма": 77280.0},
+            "Банкетный зал M \"Таверна\"": {"количество": 1, "сумма": 55270.0}
+          },
+          "2025-09-12": {
+            "Торжество в ресторане Гри Холл (банкет)": {"количество": 3, "сумма": 195960.0},
+            "Банкетный зал S \"Отдел тайн\"": {"количество": 1, "сумма": 53650.0}
+          },
+          "2025-09-13": {
+            "Торжество в ресторане Гри Холл (банкет)": {"количество": 3, "сумма": 53010.0},
+            "Банкетный зал L \"Трактир\"": {"количество": 1, "сумма": 27000.0}
+          },
+          "2025-09-14": {
+            "Торжество в ресторане Гри Холл (банкет)": {"количество": 1, "сумма": 138040.0},
+            "Банкетный зал S \"Отдел тайн\"": {"количество": 2, "сумма": 109880.0}
+          },
+          "2025-09-18": {"Торжество в ресторане Гри Холл (банкет)": {"количество": 1, "сумма": 60160.0}},
+          "2025-09-19": {
+            "Торжество в ресторане Гри Холл (банкет)": {"количество": 1, "сумма": 22960.0},
+            "Банкетный зал S \"Отдел тайн\"": {"количество": 1, "сумма": 35000.0}
+          },
+          "2025-09-20": {
+            "Торжество в ресторане Гри Холл (банкет)": {"количество": 3, "сумма": 81090.0},
+            "Банкетный зал S \"Отдел тайн\"": {"количество": 1, "сумма": 59440.0},
+            "Банкетный зал L \"Трактир\"": {"количество": 1, "сумма": 55620.0}
+          },
+          "2025-09-21": {
+            "Банкетный зал S \"Отдел тайн\"": {"количество": 1, "сумма": 19630.0},
+            "Банкетный зал M \"Таверна\"": {"количество": 1, "сумма": 128050.0}
+          },
+          "2025-09-25": {"Банкетный зал S \"Отдел тайн\"": {"количество": 1, "сумма": 3048.0}},
+          "2025-09-26": {
+            "Торжество в ресторане Гри Холл (банкет)": {"количество": 1, "сумма": 22710.0},
+            "Банкетный зал L \"Трактир\"": {"количество": 1, "сумма": 166410.0}
+          },
+          "2025-09-27": {
+            "Торжество в ресторане Гри Холл (банкет)": {"количество": 11, "сумма": 201790.0},
+            "Банкетный зал S \"Отдел тайн\"": {"количество": 1, "сумма": 7260.0}
+          },
+          "2025-09-28": {
+            "Торжество в ресторане Гри Холл (банкет)": {"количество": 1, "сумма": 51620.0},
+            "Банкетный зал S \"Отдел тайн\"": {"количество": 2, "сумма": 25730.0}
+          },
+          "2025-09-30": {"Торжество в ресторане Гри Холл (банкет)": {"количество": 1, "сумма": 12015.0}},
+          "2025-10-04": {
+            "Торжество в ресторане Гри Холл (банкет)": {"количество": 3, "сумма": 109630.0},
+            "Банкетный зал S \"Отдел тайн\"": {"количество": 2, "сумма": 73410.0}
+          },
+          "2025-10-05": {"Торжество в ресторане Гри Холл (банкет)": {"количество": 1, "сумма": 26210.0}},
+          "2025-10-09": {"Торжество в ресторане Гри Холл (банкет)": {"количество": 1, "сумма": 21960.0}},
+          "2025-10-10": {"Банкетный зал S \"Отдел тайн\"": {"количество": 1, "сумма": 23270.0}},
+          "2025-10-11": {
+            "Торжество в ресторане Гри Холл (банкет)": {"количество": 4, "сумма": 75800.0},
+            "Банкетный зал S \"Отдел тайн\"": {"количество": 2, "сумма": 133800.0}
+          },
+          "2025-10-12": {
+            "Торжество в ресторане Гри Холл (банкет)": {"количество": 2, "сумма": 38250.0},
+            "Банкетный зал S \"Отдел тайн\"": {"количество": 2, "сумма": 157880.0}
+          },
+          "2025-10-18": {
+            "Торжество в ресторане Гри Холл (банкет)": {"количество": 1, "сумма": 32410.0},
+            "Банкетный зал S \"Отдел тайн\"": {"количество": 2, "сумма": 81540.0},
+            "Банкетный зал M \"Таверна\"": {"количество": 1, "сумма": 77970.0}
+          },
+          "2025-10-19": {"Банкетный зал S \"Отдел тайн\"": {"количество": 2, "сумма": 118370.0}},
+          "2025-10-24": {"Торжество в ресторане Гри Холл (банкет)": {"количество": 2, "сумма": 38015.0}},
+          "2025-10-25": {
+            "Торжество в ресторане Гри Холл (банкет)": {"количество": 1, "сумма": 51850.0},
+            "Банкетный зал S \"Отдел тайн\"": {"количество": 1, "сумма": 53650.0},
+            "Банкетный зал L \"Трактир\"": {"количество": 1, "сумма": 112960.0}
+          },
+          "2025-10-26": {
+            "Торжество в ресторане Гри Холл (банкет)": {"количество": 2, "сумма": 43800.0},
+            "Банкетный зал S \"Отдел тайн\"": {"количество": 1, "сумма": 38512.0}
+          },
+          "2025-11-01": {
+            "Торжество в ресторане Гри Холл (банкет)": {"количество": 1, "сумма": 630.0},
+            "Банкетный зал S \"Отдел тайн\"": {"количество": 1, "сумма": 15990.0}
+          },
+          "2025-11-02": {
+            "Торжество в ресторане Гри Холл (банкет)": {"количество": 1, "сумма": 21570.0},
+            "Банкетный зал S \"Отдел тайн\"": {"количество": 1, "сумма": 61170.0}
+          },
+          "2025-11-04": {"Банкетный зал S \"Отдел тайн\"": {"количество": 2, "сумма": 79290.0}},
+          "2025-11-06": {"Торжество в ресторане Гри Холл (банкет)": {"количество": 1, "сумма": 2740.0}},
+          "2025-11-07": {"Банкетный зал S \"Отдел тайн\"": {"количество": 1, "сумма": 109100.0}},
+          "2025-11-08": {
+            "Банкетный зал S \"Отдел тайн\"": {"количество": 1, "сумма": 18640.0},
+            "Банкетный зал M \"Таверна\"": {"количество": 1, "сумма": 135600.0},
+            "Банкетный зал L \"Трактир\"": {"количество": 2, "сумма": 112080.0}
+          },
+          "2025-11-11": {"Торжество в ресторане Гри Холл (банкет)": {"количество": 1, "сумма": 24000.0}},
+          "2025-11-14": {
+            "Торжество в ресторане Гри Холл (банкет)": {"количество": 1, "сумма": 8680.0},
+            "Банкетный зал S \"Отдел тайн\"": {"количество": 1, "сумма": 52400.0},
+            "Банкетный зал L \"Трактир\"": {"количество": 1, "сумма": 9780.0}
+          },
+          "2025-11-15": {
+            "Банкетный зал S \"Отдел тайн\"": {"количество": 1, "сумма": 50090.0},
+            "Банкетный зал M \"Таверна\"": {"количество": 1, "сумма": 164650.0},
+            "Банкетный зал L \"Трактир\"": {"количество": 1, "сумма": 88480.0}
+          },
+          "2025-11-18": {"Торжество в ресторане Гри Холл (банкет)": {"количество": 1, "сумма": 20500.0}},
+          "2025-11-19": {"Торжество в ресторане Гри Холл (банкет)": {"количество": 1, "сумма": 466.0}},
+          "2025-11-20": {"Торжество в ресторане Гри Холл (банкет)": {"количество": 2, "сумма": 27620.0}},
+          "2025-11-21": {"Банкетный зал S \"Отдел тайн\"": {"количество": 1, "сумма": 38160.0}},
+          "2025-11-22": {"Банкетный зал S \"Отдел тайн\"": {"количество": 2, "сумма": 72490.0}},
+          "2025-11-23": {
+            "Банкетный зал S \"Отдел тайн\"": {"количество": 1, "сумма": 2870.0},
+            "Банкетный зал M \"Таверна\"": {"количество": 1, "сумма": 117820.0}
+          },
+          "2025-11-29": {
+            "Банкетный зал S \"Отдел тайн\"": {"количество": 2, "сумма": 92940.0},
+            "Банкетный зал M \"Таверна\"": {"количество": 1, "сумма": 110140.0}
+          },
+          "2025-11-30": {
+            "Банкетный зал S \"Отдел тайн\"": {"количество": 2, "сумма": 101960.0},
+            "Банкетный зал M \"Таверна\"": {"количество": 1, "сумма": 14260.0}
+          },
+          "2025-12-02": {
+            "Торжество в ресторане Гри Холл (банкет)": {"количество": 2, "сумма": 23500.0},
+            "Банкетный зал S \"Отдел тайн\"": {"количество": 1, "сумма": 63420.0}
+          },
+          "2025-12-06": {
+            "Торжество в ресторане Гри Холл (банкет)": {"количество": 3, "сумма": 101500.0},
+            "Банкетный зал S \"Отдел тайн\"": {"количество": 1, "сумма": 24950.0},
+            "Банкетный зал L \"Трактир\"": {"количество": 1, "сумма": 38790.0}
+          },
+          "2025-12-07": {
+            "Торжество в ресторане Гри Холл (банкет)": {"количество": 1, "сумма": 10650.0},
+            "Банкетный зал S \"Отдел тайн\"": {"количество": 1, "сумма": 29330.0},
+            "Банкетный зал M \"Таверна\"": {"количество": 1, "сумма": 50730.0},
+            "Банкетный зал L \"Трактир\"": {"количество": 1, "сумма": 82010.0}
+          },
+          "2025-12-09": {"Торжество в ресторане Гри Холл (банкет)": {"количество": 1, "сумма": 11300.0}},
+          "2025-12-13": {"Банкетный зал S \"Отдел тайн\"": {"количество": 1, "сумма": 75600.0}},
+          "2025-12-14": {"Банкетный зал S \"Отдел тайн\"": {"количество": 1, "сумма": 63530.0}},
+          "2025-12-19": {"Торжество в ресторане Гри Холл (банкет)": {"количество": 1, "сумма": 28080.0}},
+          "2025-12-30": {"Торжество в ресторане Гри Холл (банкет)": {"количество": 1, "сумма": 2500.0}},
+          "2026-05-22": {"Банкетный зал M \"Таверна\"": {"количество": 1, "сумма": 40000.0}},
+          "2026-05-25": {"Банкетный зал L \"Трактир\"": {"количество": 1, "сумма": 27500.0}}
+        };
+
+        let myChart = null;
+
+        // Соответствие имен площадок
+        const placesMapping = {
+            'Торжество в ресторане Гри Холл (банкет)': 'Гри Холл',
+            'Банкетный зал S "Отдел тайн"': 'Отдел тайн', 
+            'Банкетный зал M "Таверна"': 'Таверна',
+            'Банкетный зал L "Трактир"': 'Трактир'
+        };
+
+        // Порядок площадок для легенды
+        const orderedPlaces = ['Гри Холл', 'Отдел тайн', 'Таверна', 'Трактир'];
+
+        // Цвета для каждой площадки
+        const placeColors = {
+            'Гри Холл': '#5470c6',
+            'Отдел тайн': '#91cc75',
+            'Таверна': '#fac858',
+            'Трактир': '#ee6666'
+        };
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            // Установка дат по умолчанию
+            const dates = Object.keys(banquetData).sort();
+            if (dates.length > 0) {
+                const startDateInput = document.getElementById('start-date');
+                const endDateInput = document.getElementById('end-date');
+                
+                startDateInput.value = dates[0];
+                endDateInput.value = dates[dates.length - 1];
+                
+                // Ограничиваем минимальную и максимальную даты
+                startDateInput.min = dates[0];
+                startDateInput.max = dates[dates.length - 1];
+                endDateInput.min = dates[0];
+                endDateInput.max = dates[dates.length - 1];
+            }
+            
+            // Инициализация графика
+            const chartDom = document.getElementById('main');
+            myChart = echarts.init(chartDom);
+            updateChart();
+            
+            // Обработка ресайза с оптимизацией
+            let resizeTimer;
+            window.addEventListener('resize', function() {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => {
+                    if (myChart) {
+                        myChart.resize();
+                        updateChart();
+                    }
+                }, 250);
+            });
+        });
+
+        // Подготовка данных для графика
+        function prepareChartData() {
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+
+            // Фильтруем даты
+            const filteredDates = Object.keys(banquetData)
+                .filter(date => date >= startDate && date <= endDate)
+                .sort();
+
+            // Группируем данные
+            const placeData = {};
+            orderedPlaces.forEach(place => {
+                placeData[place] = { count: [], sum: [] };
+            });
+
+            const xAxisData = [];
+
+            // Собираем данные
+            filteredDates.forEach(date => {
+                const formattedDate = formatDate(date);
+                xAxisData.push(formattedDate);
+                
+                const dayData = banquetData[date] || {};
+                
+                // Заполняем данные по площадкам в правильном порядке
+                orderedPlaces.forEach(placeShortName => {
+                    // Находим полное имя площадки
+                    let fullPlaceName = null;
+                    for (const [fullName, shortName] of Object.entries(placesMapping)) {
+                        if (shortName === placeShortName) {
+                            fullPlaceName = fullName;
+                            break;
+                        }
+                    }
+                    
+                    // Получаем данные
+                    let count = 0;
+                    let sum = 0;
+                    if (fullPlaceName && dayData[fullPlaceName]) {
+                        count = dayData[fullPlaceName].количество;
+                        sum = dayData[fullPlaceName].сумма;
+                    }
+                    
+                    placeData[placeShortName].count.push(count);
+                    placeData[placeShortName].sum.push(sum);
+                });
+            });
+
+            return { xAxisData, placeData, filteredDates };
+        }
+
+        // Форматирование даты
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return `${date.getDate()}.${date.getMonth() + 1}`;
+        }
+
+        // Обновление графика
+        function updateChart() {
+            if (!myChart) return;
+            
+            const chartData = prepareChartData();
+            const isMobile = window.innerWidth <= 768;
+            const isLandscape = window.innerWidth > window.innerHeight;
+            
+            // Определяем интервал для меток оси X
+            const dateCount = chartData.xAxisData.length;
+            let xAxisInterval = 0;
+            let xAxisRotate = 0;
+            
+            if (dateCount > 30) {
+                xAxisInterval = Math.floor(dateCount / 15);
+                xAxisRotate = isMobile ? 45 : 0;
+            } else if (dateCount > 15) {
+                xAxisInterval = isMobile ? Math.floor(dateCount / 10) : 0;
+                xAxisRotate = isMobile ? 45 : 0;
+            }
+            
+            // Для ландшафтной ориентации на мобильных устройствах
+            if (isMobile && isLandscape) {
+                xAxisRotate = 45;
+            }
+            
+            // Создаем серии
+            const series = [];
+            const legendData = [];
+            
+            // Создаем линии для сумм по площадкам
+            orderedPlaces.forEach((place) => {
+                const color = placeColors[place];
+                const dataValues = chartData.placeData[place].sum.map(sum => sum / 1000);
+                
+                series.push({
+                    name: place,
+                    type: 'line',
+                    smooth: true,
+                    symbol: 'circle',
+                    symbolSize: isMobile ? 6 : 8,
+                    lineStyle: {
+                        width: isMobile ? 2 : 3,
+                        color: color
+                    },
+                    itemStyle: {
+                        color: color
+                    },
+                    data: dataValues,
+                    yAxisIndex: 0,
+                    z: 100
+                });
+                
+                legendData.push(place);
+            });
+
+            const option = {
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'cross',
+                        crossStyle: {
+                            color: '#999'
+                        }
+                    },
+                    formatter: function(params) {
+                        let result = `<div style="font-weight: bold; margin-bottom: 5px;">${params[0].axisValue}</div>`;
+                        
+                        params.forEach(param => {
+                            const place = param.seriesName;
+                            const color = placeColors[place];
+                            const sum = param.value * 1000;
+                            
+                            let count = 0;
+                            const dateIndex = chartData.xAxisData.indexOf(params[0].axisValue);
+                            if (dateIndex !== -1) {
+                                count = chartData.placeData[place].count[dateIndex];
+                            }
+                            
+                            result += `
+                                <div style="display: flex; align-items: center; margin: 3px 0;">
+                                    <div style="width: 12px; height: 12px; background: ${color}; margin-right: 8px; border-radius: 2px;"></div>
+                                    <div style="flex: 1;">
+                                        <strong>${place}</strong>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div>${sum.toLocaleString('ru-RU')} ₽</div>
+                                        <div style="color: #666; font-size: 12px;">${count} банкетов</div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        
+                        return result;
+                    }
+                },
+                legend: {
+                    data: legendData,
+                    top: isMobile ? 5 : 10,
+                    type: 'scroll',
+                    textStyle: {
+                        fontSize: isMobile ? 10 : 12
+                    },
+                    itemWidth: isMobile ? 20 : 25,
+                    itemHeight: isMobile ? 12 : 14,
+                    pageIconSize: isMobile ? 10 : 12,
+                    pageTextStyle: {
+                        fontSize: isMobile ? 10 : 12
+                    }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: isMobile ? '20%' : '15%',
+                    top: isMobile ? '20%' : '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    axisTick: {
+                        show: false
+                    },
+                    data: chartData.xAxisData,
+                    axisLabel: {
+                        fontSize: isMobile ? 10 : 12,
+                        interval: xAxisInterval,
+                        rotate: xAxisRotate,
+                        margin: isMobile ? 8 : 10
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: 'Сумма (тыс. ₽)',
+                    position: 'left',
+                    axisLabel: {
+                        fontSize: isMobile ? 10 : 12,
+                        formatter: '{value}k'
+                    },
+                    splitLine: {
+                        show: true
+                    }
+                },
+                series: series,
+                animation: true,
+                animationDuration: 500
+            };
+
+            myChart.setOption(option);
+        }
+
+        // Экспорт функции для глобального доступа
+        window.updateChart = updateChart;
+    </script>
+</body>
+</html>
