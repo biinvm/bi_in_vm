@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Визардия - Аналитика банкетов</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+</head>
+<body>
+    <!-- Звездное небо -->
+    <div class="stars" id="stars"></div>
+
+    <div class="container">
+        <!-- Заголовок -->
+        <header class="header">
+            <h1 class="logo">Визардия</h1>
+            <p class="subtitle">Академия волшебства • Аналитика банкетов</p>
+        </header>
+
+        <!-- Навигация -->
+        <nav class="nav-tabs">
+            <button class="tab-btn active" data-tab="analytics1">
+                🏰 Аналитика 1: Статистика банкетов
+            </button>
+            <button class="tab-btn" data-tab="analytics2">
+                📊 Аналитика 2: Анализ продуктов
+            </button>
+        </nav>
+
+        <!-- Аналитика 1: Статистика банкетов -->
+        <section id="analytics1" class="analytics-section active">
+            <h2 class="section-title">🏰 Аналитика банкетов</h2>
+            
+            <!-- Панель управления -->
+            <div class="controls-panel">
+                <div class="controls-grid">
+                    <div class="control-group">
+                        <label class="control-label">Период</label>
+                        <select id="period-select">
+                            <option value="day">По дням</option>
+                            <option value="week">По неделям</option>
+                            <option value="month">По месяцам</option>
+                        </select>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">Метрика</label>
+                        <select id="metric-select">
+                            <option value="count">Количество банкетов</option>
+                            <option value="amount">Сумма банкетов</option>
+                        </select>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control
